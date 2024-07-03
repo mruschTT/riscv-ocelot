@@ -263,7 +263,7 @@ class LDQEntry(implicit p: Parameters) extends BoomBundle()(p)
 
   val debug_wb_data       = UInt(xLen.W)
 }
-
+TODO: read
 class DLQEntry(implicit p: Parameters) extends BoomBundle()(p)
     with HasBoomUOP
 {
@@ -795,7 +795,7 @@ class LSU(implicit p: Parameters, edge: TLEdgeOut) extends BoomModule()(p)
   val dlq_commit_e = dlq(dlq_execute_head)
   
 
-
+  // TODO: read
   // -----------------------
   // Determine what can fire
 
