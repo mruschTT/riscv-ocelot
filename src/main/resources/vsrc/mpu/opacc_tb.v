@@ -19,20 +19,20 @@ module tb_fsm_shift_register();
     wire en_ab;
     wire en_c;
 
-    reg [XLEN-1:0] vi_a [0:vl-1];
-    reg [XLEN-1:0] vi_b [0:vl-1];
-    reg [XLEN-1:0] vi_c [0:vl-1];
-    wire [XLEN-1:0] vo_c [0:vl-1];
+    reg [vl-1:0][XLEN-1:0] vi_a;
+    reg [vl-1:0][XLEN-1:0] vi_b;
+    reg [vl-1:0][XLEN-1:0] vi_c;
+    wire [vl-1:0][XLEN-1:0] vo_c;
 
     // Storage for output vectors
-    reg [63:0] reg_c_inst [0:vl-1][0:ml-1];
+    reg [ml-1:0][vl-1:0][XLEN-1:0] reg_c_inst;
     integer i, j, k;
 
     // Capture output vectors
     always @(posedge clk) begin
         if (done) begin
-            for (i = 0; i < N; i = i + 1) begin
-                for (j = 0; j < M; j = j + 1) begin
+            for (i=0; i<M; i++) begin
+                for (j=0; j<N; j++) begin
                     reg_c_inst[i][j] <= opacc_inst.reg_c[i][j];
                 end
             end
@@ -41,8 +41,8 @@ module tb_fsm_shift_register();
 
     opacc #(.VLEN(VLEN), .MLEN(MLEN), .XLEN(XLEN)) opacc_inst (
         .clk(clk),
-        .issng_a(1'b1),
-        .issng_b(1'b1),
+        // .issng_a(1'b1),
+        // .issng_b(1'b1),
         .en_ab(en_ab),
         .en_c(en_c),
         .vi_a(vi_a),
@@ -83,13 +83,13 @@ module tb_fsm_shift_register();
         // Apply c inputs 
         #10
         c_valid = 0;
-        for (i = 0; i < ml; i++) begin
-            for (j = 0; j < M; j++) begin
+        for (i=0; i<ml; i++) begin
+            for (j=0; j<vl; j++) begin
                 `assert(en_c==1 && en_ab==0, "Assertion failed: LOAD C FSM signals incorrect");
                 vi_c[j] = i*j;
             end
             #10;
-            for (j = 0; j < M; j++) begin
+            for (j=0; j<vl; j++) begin
                 `assert(opacc_inst.reg_c[i][j] == i*j, "Assertion failed: C REG state incorrect");
             end
         end
@@ -98,12 +98,12 @@ module tb_fsm_shift_register();
         c_valid = 0;
         ab_valid = 1;
         #10;
-        for (k = 0; i < 4; k++) begin
-            for (i = 0; i < vl; i++) vi_a[i] = i*k;
-            for (j = 0; j < ml; j++) vi_b[j] = j*k;
+        for (k = 0; k < 4; k++) begin
+            for (i = 0; i < ml; i++) vi_a[i] = i*k;
+            for (j = 0; j < vl; j++) vi_b[j] = j*k;
             #10
-            for (i = 0; i < vl; i++) begin
-                for (j = 0; j < ml; j++) begin
+            for (i=0; i<ml; i++) begin
+                for (j=0; j<vl; j++) begin
                     `assert(opacc_inst.reg_c[i][j] == reg_c_inst + i*j, "Assertion failed: OP C+=A*B incorrect");
                 end
             end
