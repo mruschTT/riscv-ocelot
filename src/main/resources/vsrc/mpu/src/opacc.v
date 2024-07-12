@@ -1,37 +1,45 @@
 // See LICENSE.TT for license details.
 module opacc #(parameter
-   vl=4,
-   ml=4,
-   XLEN=64)(
-    input clk,      
-    input issng_a,
-    input issng_b,
-    input en_ab,
-    input en_c,
-    input [vl-1:0][XLEN-1:0] vi_a,
-    input [vl-1:0][XLEN-1:0] vi_b,
-    input [vl-1:0][XLEN-1:0] vi_c,
-    output [vl-1:0][XLEN-1:0] vo_c
+    nregs=2;
+    ml=4,
+    vl=4,
+    XLEN=64)(
+    input clk,
+    input reset,
+    input ab_valid,
+    input ci_valid,
+    input co_valid,
+    input [ml-1:0][XLEN-1:0] ai,
+    input [vl-1:0][XLEN-1:0] bi,
+    input [$clog2(nregs)-1:0] cld_addr;
+    input [$clog2(nregs)-1:0] cst_addr;
+    input [$clog2(nregs)-1:0] ab_addr;
+    input [vl-1:0][XLEN-1:0] ci,
+    output logic [vl-1:0][XLEN-1:0] co
     );
     integer i, j;
-    reg [ml-1:0][vl-1:0][XLEN-1:0] reg_c;
+    logic [nregs-1:0][ml-1:0][vl-1:0][XLEN-1:0] cio;
+    logic [ml-1:0][vl-1:0][XLEN-1:0] c_opacc_ab;
    
-    always @(posedge clk) begin
-        if (en_c) begin
-            vo_c <= reg_c[ml-1];
-            for(i=1; i<vl; i++) begin
-                reg_c[j] <= reg_c[j-1];
-            end
-            reg_c[0] <= vi_c;
-        end
-        else if (en_ab) begin        
-            for(i=0; i<ml; i++) begin
-                for(j=0; j<vl; j++) begin
-                    reg_c[i][j] <= vi_b[j] * vi_a[i] + reg_c[i][j];
-                end
-            end
-        end
-    end
-
+    assign cio[0] = ci;
+    assign co = cio[ml-1];
+    genvar i, j;
+    generate
+        for(i=0; i<ml; i++) begin
+            for(j=0; j<vl; j++) begin
+                macc_cell  #(.nregs(nregs) .XLEN(XLEN)) macc_inst (
+                    .clk(clk),
+                    .reset(reset),
+                    .ab_valid(ab_valid),
+                    .c_valid(c_valid),
+                    .cld_addr(cld_addr),
+                    .cst_addr(cst_addr),
+                    .cab_addr(cab_addr),
+                    .ai(ai[i]),
+                    .bj(bj[j]),
+                    .ci(cio[i]),
+                    .co(cio[i+1])
+                );
+    endgenerate
 endmodule
 
