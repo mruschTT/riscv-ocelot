@@ -1,2 +1,3 @@
 ../src/opacc_tb.sv
 ../src/opacc.sv
+../src/macc_cell.sv
