@@ -12,7 +12,6 @@ module tt_matrix_unit #(parameter
     input [VLEN-1:0]  i_vb,
     input [VLEN-1:0]  i_vc,
     
-    output o_vrf_rden_0a,
     output o_vrf_rdaddr_0a,
     
     output o_mvex_lqvld,
@@ -20,10 +19,15 @@ module tt_matrix_unit #(parameter
     output o_mvex_lqexc,
     output [LQ_DEPTH_LOG2-1:0] o_mvex_lqid
     );
+    localparam OPC_MATRIX = 0x0B
+    localparam FUNC_OPACC = 0
+    localparam FUNC_CIN = 1
+    localparam FUNC_COUT = 2
+
     localparam ml = MLEN/XLEN;
     localparam vl = VLEN/XLEN;
 //   localparam kl=4, //TODO: add kl>1
-   
+
     logic [ml-1:0][XLEN-1:0] au;
     logic [vl-1:0][XLEN-1:0] bu;
     logic [vl-1:0][XLEN-1:0] cu;
@@ -46,21 +50,13 @@ module tt_matrix_unit #(parameter
     wire [4:0] c_addr = inst[11:7];
     wire [4:0] a_addr = inst[19:15];
     wire [4:0] b_addr = inst[24:20];
-
     wire [2:0] funct3 = inst[14:12];
-    wire [6:0] funct7 = inst[31:25];
-    wire       vm     = inst[25]; // Only needed for V-Ext
+    // wire       vm     = inst[25]; // Only needed for V-Ext
     
-    always_comb begin
-        if (opcode == 0x0B) begin
-        end
-        else begin
-            a_rden = 0;
-            b_rden = 0;
-            c_rden = 0;
-    end
-
-    assign o_vrf_rden_0a = {a_rden, b_rden, c_rden};
+    wire ab_valid = (opcode==OPC_MATRIX) & (funct3==FUNC_OPACC);
+    wire ci_valid = (opcode==OPC_MATRIX) & (funct3==FUNC_CIN);
+    wire co_valid = (opcode==OPC_MATRIX) & (funct3==FUNC_COUT);
+    
     assign o_vrf_rdaddr_0a = {a_addr, b_addr, c_addr};
 
     always_ff @(posedge clk)
@@ -75,16 +71,16 @@ module tt_matrix_unit #(parameter
     // Outputs
     .o_rddata_0a         ({vrf_p2_rddata,vrf_p1_rddata,vrf_p0_rddata}),
    
-    .ab_valid,
-    .c_valid,
+    .ab_valid(ab_valid),
+    .ci_valid(ci_valid),
     
-    .op_addr,
-    .ab_addr,
-    .c_addr,
-    .au,
-    .bu,
-    .cu,
-    .co
+    .ab_addr(ab_addr),
+    .ci_addr(ci_addr),
+    .co_addr(co_addr),
+    .ai(au),
+    .bi(bu),
+    .ci(cu),
+    .co(co)
   )
 endmodule
 

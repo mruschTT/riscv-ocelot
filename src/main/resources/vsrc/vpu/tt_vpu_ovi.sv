@@ -112,6 +112,9 @@ module tt_vpu_ovi #(parameter VLEN = 256)
   logic [LQ_DEPTH_LOG2-1:0] id_vex_lqid;          // From id of tt_id.v
   logic                     vex_id_incr_addrp2;     // From vecu of tt_vec.v
 
+  // Matrix signals
+  logic              mvrf_p0_rden, mvrf_p1_rden, mvrf_p2_rden;
+  logic [       4:0] mvrf_p0_rdaddr, mvrf_p1_rdaddr, mvrf_p2_rdaddr;
 
   // Vector signals
   logic              vrf_p0_rden, vrf_p1_rden, vrf_p2_rden;
@@ -582,18 +585,24 @@ module tt_vpu_ovi #(parameter VLEN = 256)
   assign vs2_rddata    = vrf_p1_rddata;
   assign vs3_rddata    = vrf_p2_rddata;
 
-  assign vrf_p0_rdaddr =                                  id_vec_autogen.rf_addrp0;
-  assign vrf_p1_rdaddr = id_vec_autogen.rf_rd_p2_is_rs2 ? id_vec_autogen.rf_addrp2
+  assign vrf_p0_rdaddr = mvrf_p0_rden                   ? mvrf_p0_rdaddr 
+                                                        : id_vec_autogen.rf_addrp0;
+
+  assign vrf_p1_rdaddr = mvrf_p1_rden                   ? mvrf_p1_rdaddr
+                       : id_vec_autogen.rf_rd_p2_is_rs2 ? id_vec_autogen.rf_addrp2
                                                         : id_vec_autogen.rf_addrp1;
-  assign vrf_p2_rdaddr = id_vec_autogen.rf_rd_p2_is_rs2 ? id_vec_autogen.rf_addrp1
+  assign vrf_p2_rdaddr = mvrf_p2_rden                   ? mvrf_p2_rdaddr
+                       : id_vec_autogen.rf_rd_p2_is_rs2 ? id_vec_autogen.rf_addrp1
                                                         : id_vec_autogen.rf_addrp2;
+
+
 
   tt_matrix_unit #(.VLEN(VLEN))
   matrix_unit
   (
+    // Inputs
     .i_clk               (clk),
     .i_reset_n           (reset_n),
-    // Inputs
     .i_inst              (issue_inst),
     .i_va                (vrf_p2_rddata),
     .i_vb               (vrf_p1_rddata),
@@ -602,9 +611,7 @@ module tt_vpu_ovi #(parameter VLEN = 256)
     .i_vm0_0a            (vrf_vm0_rddata),
     
     // Outputs
-    .o_vrf_rden_0a       ({vrf_p2_rden,vrf_p1_rden,vrf_p0_rden}),
-    .o_vrf_rdaddr_0a     ({vrf_p2_rdaddr, vrf_p1_rdaddr, vrf_p0_rdaddr}),
-    
+    .o_vrf_rdaddr_0a     ({mvrf_p2_rdaddr, mvrf_p1_rdaddr, mvrf_p0_rdaddr}),
     .o_mvex_lqvld    (mvex_lqvld_4c),      
     .o_mvex_lqdata   (mvex_lqdata_4c), 
     .o_mvex_lqexc    (mvex_lqexc_4c),      
