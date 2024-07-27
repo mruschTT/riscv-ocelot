@@ -6,7 +6,7 @@
 
 module opacc_tb();
 
-    parameter nregs = 2;    
+    parameter NUM_MREGS = 2;    
     parameter XLEN = 8;    
     parameter VLEN = 32;
     parameter MLEN = 32;
@@ -18,9 +18,9 @@ module opacc_tb();
     logic ab_valid;
     logic c_valid;
 
-    logic [$clog2(nregs)-1:0] ci_addr;
-    logic [$clog2(nregs)-1:0] co_addr;
-    logic [$clog2(nregs)-1:0] ab_addr;
+    logic [$clog2(NUM_MREGS)-1:0] ci_addr;
+    logic [$clog2(NUM_MREGS)-1:0] co_addr;
+    logic [$clog2(NUM_MREGS)-1:0] ab_addr;
 
     logic [vl-1:0][XLEN-1:0] ai;
     logic [vl-1:0][XLEN-1:0] bi;
@@ -30,7 +30,7 @@ module opacc_tb();
     // Storage for output vectors
     integer ii, i, j, k, n;
 
-    opacc #(.nregs(nregs), .vl(vl), .ml(ml), .XLEN(XLEN)) opacc_inst (
+    opacc #(.NUM_MREGS(NUM_MREGS), .vl(vl), .ml(ml), .XLEN(XLEN)) opacc_inst (
         .clk(clk),
         .reset(reset),
         .ab_valid(ab_valid),
@@ -87,7 +87,7 @@ module opacc_tb();
             end
             
             $display("t=%d: ci=%h",$time, ci);
-            for (n=0; n<nregs; n++) begin
+            for (n=0; n<NUM_MREGS; n++) begin
                 $display("n=%d", n);
                 for (ii=0; ii<ml; ii++) 
                     $display("t=%d: regC[%d]=%h",  $time, ii, opacc_inst.reg_c[n][ii]);
@@ -124,7 +124,7 @@ module opacc_tb();
             
             $display("time %d: va:%h",  $time, opacc_inst.ai);
             $display("time %d: vb:%h",  $time, opacc_inst.bi);
-            for (n=0; n<nregs; n++) begin
+            for (n=0; n<NUM_MREGS; n++) begin
                 $display("n=%d", n);
                 for (i=0; i<ml; i++) 
                     $display("time %d: C_reg[%d]:%h ", $time, i, opacc_inst.reg_c[n][i]);
@@ -152,7 +152,7 @@ module opacc_tb();
         for (i=0; i<ml+1; i++) begin
             $display("t=%d: i=%d",$time, i);
             ci = i;
-            for (n=0; n<nregs; n++) begin
+            for (n=0; n<NUM_MREGS; n++) begin
                 $display("n=%d", n);
                 for (ii=0; ii<ml; ii++) 
                     $display("t=%d: regC[%d]=%h",  $time, ii, opacc_inst.reg_c[n][ii]);

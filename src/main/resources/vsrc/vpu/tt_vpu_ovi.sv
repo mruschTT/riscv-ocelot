@@ -173,6 +173,12 @@ module tt_vpu_ovi #(parameter VLEN = 256)
   logic [31:0]                 ex_mem_lqdata_2c;
   logic [LQ_DEPTH_LOG2-1:0]    ex_mem_lqid_2c;
     
+  // M EX --> MEM signals
+  logic                     mvex_lqvld_4c;
+  logic [VLEN-1:0]          mvex_lqdata_4c;
+  logic [LQ_DEPTH_LOG2-1:0] mvex_lqid_4c;
+  tt_briscv_pkg::csr_fp_exc mvex_lqexc_4c;
+       
   // VEX --> MEM signals
   logic                     vex_mem_lqvld_1c;
   logic [VLEN-1:0]          vex_mem_lqdata_1c;
@@ -582,11 +588,37 @@ module tt_vpu_ovi #(parameter VLEN = 256)
   assign vrf_p2_rdaddr = id_vec_autogen.rf_rd_p2_is_rs2 ? id_vec_autogen.rf_addrp1
                                                         : id_vec_autogen.rf_addrp2;
 
+  tt_matrix_unit #(.VLEN(VLEN))
+  matrix_unit
+  (
+    .i_clk               (clk),
+    .i_reset_n           (reset_n),
+    // Inputs
+    .i_inst              (issue_inst),
+    .i_va                (vrf_p2_rddata),
+    .i_vb               (vrf_p1_rddata),
+    .i_vc               (vrf_p0_rddata),
+    .i_dstmask_0a        (),
+    .i_vm0_0a            (vrf_vm0_rddata),
+    
+    // Outputs
+    .o_vrf_rden_0a       ({vrf_p2_rden,vrf_p1_rden,vrf_p0_rden}),
+    .o_vrf_rdaddr_0a     ({vrf_p2_rdaddr, vrf_p1_rdaddr, vrf_p0_rdaddr}),
+    
+    .o_mvex_lqvld    (mvex_lqvld_4c),      
+    .o_mvex_lqdata   (mvex_lqdata_4c), 
+    .o_mvex_lqexc    (mvex_lqexc_4c),      
+    .o_mvex_lqid     (mvex_lqid_4c), 
+// ...
+  );
+
   tt_vec_regfile #(.VLEN(VLEN))
   regfile
   (
     .i_clk               (clk),
     .i_reset_n           (reset_n),
+    .i_id_vec_autogen      (id_vec_autogen),        
+
     // Outputs
     .o_rddata_0a         ({vrf_p2_rddata,vrf_p1_rddata,vrf_p0_rddata}),
     .o_dstmask_0a        (),
@@ -726,6 +758,12 @@ tt_lq #(.LQ_DEPTH(LQ_DEPTH),
    .i_vex_mem_lqexc_3c(vex_mem_lqexc_3c),
    .i_vex_mem_lqid_3c(vex_mem_lqid_3c),
 
+    // matrix unit output
+   .i_vex_mem_lqvld_4c(mvex_lqvld_4c),
+   .i_vex_mem_lqdata_4c(mvex_lqdata_4c),
+   .i_vex_mem_lqexc_4c(mvex_lqexc_4c),
+   .i_vex_mem_lqid_4c(mvex_lqid_4c),
+
    // Load return data
    .i_data_vld_0(drain_load_buffer),
    .i_data_vld_cancel_0('0),
@@ -864,7 +902,7 @@ assign mem_fp_rf_wrdata[63:0] = lq_rddata[63:0];
     mem_vrf_wrmask_nxt = mem_vrf_wrmask_reg;
     mem_vrf_wrexc_nxt  = mem_vrf_wrexc_reg;
 
-    mem_vrf_wrdata_nxt[VLEN*lmul_cnt +: VLEN] = mem_vrf_wrdata;
+    mem_vrf_wrdata_nxt[VLEN*lmul_cnt +: VLEN] =   ;
     mem_vrf_wrmask_nxt[     lmul_cnt        ] = mem_vrf_wrmask;
     mem_vrf_wrexc_nxt                        |= mem_vrf_wrexc;
   end
