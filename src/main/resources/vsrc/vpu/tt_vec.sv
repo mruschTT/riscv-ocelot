@@ -233,6 +233,7 @@ module tt_vec #(parameter
        for (int i=0;         i<VLEN/8; i++) iterate_data_saved_3a[i*8+:8] <= (~dstwr_bytemask_2a[i])                                 ? rddst_data_2a[i*8+:8] : prermw_wrdata_2a[i*8+:8];
      else if(nrwop_2a) begin
         if(~iterate_cnt_2a[0]) 
+        //TODO: miles mux this with mmu output in vpu_ovi
           for (int i=0;      i<VLEN/16;i++) iterate_data_saved_3a[i*8+:8] <= (iterate_byte_en_2a[i] & ~dstwr_bytemask_2a[i        ]) ? rddst_data_2a[i*8+:8] : fwren_2a ? fwrdata_2a[(i%(VLEN/16))*8+:8] : idata_2a[(i%(VLEN/16))*8+:8];
         if(iterate_cnt_2a[0]) 
           for (int i=VLEN/16;i<VLEN/8; i++) iterate_data_saved_3a[i*8+:8] <= (iterate_byte_en_2a[i] & ~dstwr_bytemask_2a[i-VLEN/16]) ? rddst_data_2a[i*8+:8] : fwren_2a ? fwrdata_2a[(i%(VLEN/16))*8+:8] : idata_2a[(i%(VLEN/16))*8+:8];

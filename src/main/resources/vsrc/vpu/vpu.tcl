@@ -53,7 +53,9 @@ tt_vfp_lane.sv \
 tt_vfp_red.sv \
 tt_vfp_unit.sv \
 tt_vpu_ovi.sv \
-tt_vpu_ovi_assert.sv
+tt_vpu_ovi_assert.sv \
+tt_matrix_unit.sv \
+opacc.sv 
 set top tt_vpu_ovi
 elaborate -top $top -bbox_mul 256
 clock clk

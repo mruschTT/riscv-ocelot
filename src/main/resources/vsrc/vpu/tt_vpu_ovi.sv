@@ -760,6 +760,7 @@ tt_lq #(.LQ_DEPTH(LQ_DEPTH),
    .i_vex_mem_lqexc_2c(vex_mem_lqexc_2c),
    .i_vex_mem_lqid_2c(vex_mem_lqid_2c),
 
+//TODO: mem_lqdata_3c = vex_mem_lqdata_3c : mvex_lqdata_4c
    .i_vex_mem_lqvld_3c(vex_mem_lqvld_3c),
    .i_vex_mem_lqdata_3c(vex_mem_lqdata_3c),
    .i_vex_mem_lqexc_3c(vex_mem_lqexc_3c),
