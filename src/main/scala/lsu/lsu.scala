@@ -263,7 +263,7 @@ class LDQEntry(implicit p: Parameters) extends BoomBundle()(p)
 
   val debug_wb_data       = UInt(xLen.W)
 }
-TODO: read
+// TODO: read
 class DLQEntry(implicit p: Parameters) extends BoomBundle()(p)
     with HasBoomUOP
 {

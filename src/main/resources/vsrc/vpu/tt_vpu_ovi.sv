@@ -610,10 +610,12 @@ module tt_vpu_ovi #(parameter VLEN = 256)
   assign mvex_lq_data_3c = vex_mem_lqvld_3c ? vex_mem_lqdata_3c
                           : matrix_lq_vld ? matrix_lq_data 
                           : 'x;
-  assign mvex_lq_id_3c = vex_mem_lqvid_3c ? vex_mem_lqid_3c
-                          : matrix_lq_id ? matrix_lq_id 
+  assign mvex_lq_id_3c = vex_mem_lqvld_3c ? vex_mem_lqid_3c
+                          : matrix_lq_vld ? matrix_lq_id 
                           : 'x;
-  assign mvex_lq_exc_3c;
+  assign mvex_lq_exc_3c = vex_mem_lqvld_3c ? vex_mem_lqexc_3c
+                          : matrix_lq_vld ? matrix_lq_exc 
+                          : 'x;
 
   tt_matrix_unit #(.VLEN(VLEN))
   matrix_unit
@@ -630,11 +632,10 @@ module tt_vpu_ovi #(parameter VLEN = 256)
     
     // Outputs
     .o_vrf_rdaddr_0a     ({mvrf_p2_rdaddr, mvrf_p1_rdaddr, mvrf_p0_rdaddr}),
-    .o_mvex_lqvld    (mvex_lqvld_4c),      
-    .o_mvex_lqdata   (mvex_lqdata_4c), 
-    .o_mvex_lqexc    (mvex_lqexc_4c),      
-    .o_mvex_lqid     (mvex_lqid_4c), 
-// ...
+    .o_mvex_lqvld    (matrix_lq_vld),      
+    .o_mvex_lqdata   (matrix_lq_data), 
+    .o_mvex_lqexc    (matrix_lq_id),      
+    .o_mvex_lqid     (matrix_lq_exc) 
   );
 
   tt_vec_regfile #(.VLEN(VLEN))
