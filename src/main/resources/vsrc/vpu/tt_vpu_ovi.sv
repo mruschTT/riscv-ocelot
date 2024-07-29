@@ -198,6 +198,16 @@ module tt_vpu_ovi #(parameter VLEN = 256)
   logic [LQ_DEPTH_LOG2-1:0] vex_mem_lqid_3c;
   tt_briscv_pkg::csr_fp_exc vex_mem_lqexc_3c;
 
+  logic                     matrix_lq_vld;
+  logic [VLEN-1:0]          matrix_lq_data;
+  tt_briscv_pkg::csr_fp_exc matrix_lq_exc;
+  logic [LQ_DEPTH_LOG2-1:0] matrix_lq_id;
+
+  logic                     mvex_lq_vld_3c;
+  logic [VLEN-1:0]          mvex_lq_data_3c;
+  tt_briscv_pkg::csr_fp_exc mvex_lq_exc_3c;
+  logic [LQ_DEPTH_LOG2-1:0] mvex_lq_id_3c;
+
   logic [63:0]  rf_vex_p0_reg;
   logic [63:0]  rf_vex_p1_reg;
   logic [63:0]  fprf_vex_p0_reg;
@@ -585,6 +595,7 @@ module tt_vpu_ovi #(parameter VLEN = 256)
   assign vs2_rddata    = vrf_p1_rddata;
   assign vs3_rddata    = vrf_p2_rddata;
 
+  //mux vector and matrix ex outputs to lq
   assign vrf_p0_rdaddr = mvrf_p0_rden                   ? mvrf_p0_rdaddr 
                                                         : id_vec_autogen.rf_addrp0;
 
@@ -595,7 +606,14 @@ module tt_vpu_ovi #(parameter VLEN = 256)
                        : id_vec_autogen.rf_rd_p2_is_rs2 ? id_vec_autogen.rf_addrp1
                                                         : id_vec_autogen.rf_addrp2;
 
-
+  assign mvex_lq_vld_3c = matrix_lq_vld | vex_mem_lqvld_3c;
+  assign mvex_lq_data_3c = vex_mem_lqvld_3c ? vex_mem_lqdata_3c
+                          : matrix_lq_vld ? matrix_lq_data 
+                          : 'x;
+  assign mvex_lq_id_3c = vex_mem_lqvid_3c ? vex_mem_lqid_3c
+                          : matrix_lq_id ? matrix_lq_id 
+                          : 'x;
+  assign mvex_lq_exc_3c;
 
   tt_matrix_unit #(.VLEN(VLEN))
   matrix_unit
@@ -760,17 +778,11 @@ tt_lq #(.LQ_DEPTH(LQ_DEPTH),
    .i_vex_mem_lqexc_2c(vex_mem_lqexc_2c),
    .i_vex_mem_lqid_2c(vex_mem_lqid_2c),
 
-//TODO: mem_lqdata_3c = vex_mem_lqdata_3c : mvex_lqdata_4c
-   .i_vex_mem_lqvld_3c(vex_mem_lqvld_3c),
-   .i_vex_mem_lqdata_3c(vex_mem_lqdata_3c),
-   .i_vex_mem_lqexc_3c(vex_mem_lqexc_3c),
-   .i_vex_mem_lqid_3c(vex_mem_lqid_3c),
-
-    // matrix unit output
-   .i_vex_mem_lqvld_4c(mvex_lqvld_4c),
-   .i_vex_mem_lqdata_4c(mvex_lqdata_4c),
-   .i_vex_mem_lqexc_4c(mvex_lqexc_4c),
-   .i_vex_mem_lqid_4c(mvex_lqid_4c),
+    //mem_lqdata_3c = vec : matrix
+   .i_vex_mem_lqvld_3c(mvex_lq_vld_3c),
+   .i_vex_mem_lqdata_3c(mvex_lq_data_3c),
+   .i_vex_mem_lqexc_3c(mvex_lq_exc_3c),
+   .i_vex_mem_lqid_3c(mvex_lq_id_3c),
 
    // Load return data
    .i_data_vld_0(drain_load_buffer),
