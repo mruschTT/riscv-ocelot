@@ -536,7 +536,7 @@ assign is_fp_instrn = f_ext;
 assign valid_fp_instrn = id_rts & is_fp_instrn;
 
 //VEC Instructions
-assign is_vec_instrn = v_ext;
+assign is_vec_instrn = v_ext | matrix_ext;
 assign valid_vec_instrn = id_rts & is_vec_instrn;
 assign o_id_vex_rts    = (!raw_hazard_stall_vex) & id_rts & v_ext & ~vec_ldst_vld & ~vsetOp_to_ex;
 
@@ -563,6 +563,7 @@ assign a_ext = (EncType[4:0] == `BRISCV_INSTR_TYPE_A);	// 01001
 assign b_ext = (EncType[4:1] == 4'b0101);		// 01010 - 01011
 assign f_ext = (EncType[4:2] == 3'b011);		// 01100 - 01111
 assign v_ext = (EncType[4] == 1'b1) & ~(&EncType[3:0]);	// 10000 - 11110
+assign matrix_ext = (opcode == 'hB0);
 
 // Int
 autogen_EncType autogen_EncType ( opcode, funct3, funct7, mop, EncType[4:0]);
