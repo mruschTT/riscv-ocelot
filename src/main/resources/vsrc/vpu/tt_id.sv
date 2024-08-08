@@ -96,8 +96,7 @@ module tt_id #(parameter LQ_DEPTH=tt_briscv_pkg::LQ_DEPTH, LQ_DEPTH_LOG2=3, EXP_
 );
 
 wire v_ext;
-wire matrix_to_vec_mv;
-wire matrix_ext;
+wire matrix_vrf_write;
 
 wire i_ext, m_ext, a_ext, b_ext;
 wire f_ext;
@@ -185,13 +184,14 @@ logic no_lq_load_pending;
   assign o_id_ex_pc      = id_replay ? id_ex_pc_replay : i_if_pc;
   assign o_csr           = id_replay ? id_csr_replay : i_csr;
  
-  assign id_rts          = (i_if_instrn_rts | id_replay)
-                            //reduction ops don't consume another lq entry so under replay its fine to ignore full conditions.
-                         & (~(i_mem_fe_lqfull | i_mem_fe_skidbuffull) | (is_vec_instrn & id_replay & ~vec_autogen_replay.addrp2_incr[0]))
-                            // Syncstall only applies per ldqid, and some vector replays need multiple dispatches to fill a single ldqid
-                         & (id_replay | ~sync_stall )
-                            // Need all units to be ready to dispatch anything
-                         & (is_ex_instrn | is_fp_instrn | is_vec_instrn) & units_rtr;
+  assign id_rts = (i_if_instrn_rts | id_replay)
+                  //reduction ops don't consume another lq entry so under replay its fine to ignore full conditions.
+                  & (~(i_mem_fe_lqfull | i_mem_fe_skidbuffull) | (is_vec_instrn & id_replay & ~vec_autogen_replay.addrp2_incr[0]))
+                  // Syncstall only applies per ldqid, and some vector replays need multiple dispatches to fill a single ldqid
+                  & (id_replay | ~sync_stall )
+                  // Need all units to be ready to dispatch anything
+                  & (is_ex_instrn | is_fp_instrn | is_vec_instrn) 
+                  & units_rtr;
   assign o_id_instrn_rtr = units_rtr & ~id_replay & ~raw_hazard_stall & ~(i_mem_fe_lqfull | i_mem_fe_skidbuffull) & ~sync_stall;
 `else
 tt_rts_rtr_pipe_stage #(.WIDTH(32)) id_instrn_flops
@@ -527,7 +527,7 @@ wire valid_amo_instn = id_rts & a_ext;
 wire valid_int_instn = id_rts & i_ext;
 wire valid_mul_instn = id_rts & m_ext;
 wire valid_bit_instn = id_rts & b_ext;
-assign vsetOp_to_ex = v_ext & ((EncType == `BRISCV_INSTR_TYPE_C1) | (EncType == `BRISCV_INSTR_TYPE_C2) | (EncType == `BRISCV_INSTR_TYPE_C3));
+assign vsetOp_to_ex = (!matrix_vrf_write) & v_ext & ((EncType == `BRISCV_INSTR_TYPE_C1) | (EncType == `BRISCV_INSTR_TYPE_C2) | (EncType == `BRISCV_INSTR_TYPE_C3));
 assign is_ex_instrn =  (i_ext | m_ext | a_ext | b_ext | vsetOp_to_ex | vec_ldst_vld | fp_ldst_vld);
 assign valid_ex_instrn =  id_rts & is_ex_instrn;
 assign o_id_ex_rts = (!raw_hazard_stall) & valid_ex_instrn;
@@ -540,7 +540,6 @@ assign valid_fp_instrn = id_rts & is_fp_instrn;
 
 //VEC Instructions
 assign is_vec_instrn = v_ext;
-assign is_matrix_instrn = matrix_ext;
 assign valid_vec_instrn = id_rts & is_vec_instrn;
 assign o_id_vex_rts    = (!raw_hazard_stall_vex) & id_rts & v_ext & ~vec_ldst_vld & ~vsetOp_to_ex;
 
@@ -567,10 +566,12 @@ assign a_ext = (EncType[4:0] == `BRISCV_INSTR_TYPE_A);	// 01001
 assign b_ext = (EncType[4:1] == 4'b0101);		// 01010 - 01011
 assign f_ext = (EncType[4:2] == 3'b011);		// 01100 - 01111
 
-assign matrix_ext = (opcode == `MATRIX_OPC);
-assign matrix_to_vec_mv = (opcode == `MATRIX_OPC) & (funct3 == `MATRIX_FUNC_MV_M_V);
-assign v_ext = matrix_to_vec_mv &(EncType[4] == 1'b1) & ~(&EncType[3:0]);	// 10000 - 11110
-
+assign matrix_vrf_write = (opcode == `MATRIX_OPC) & (funct3 == `MATRIX_FUNC_MV_M_V);
+// no vd raw
+assign matrix_vrf_read = (opcode == `MATRIX_OPC) 
+                        & ((funct3 == `MATRIX_FUNC_OPACC) | (funct3 == `MATRIX_FUNC_MV_V_M));
+assign v_ext = (&(EncType[4] == 1'b1) & ~(&EncType[3:0])) // 10000 - 11110
+               | matrix_vrf_write;
 // Int
 autogen_EncType autogen_EncType ( opcode, funct3, funct7, mop, EncType[4:0]);
 autogen_SrcA autogen_SrcA ( opcode, funct3, funct7, SrcA);
@@ -949,14 +950,14 @@ wire   vrgatherei16op      = (opcode[6:0] == 'h57) & (funct7[6:1] == 6'b00_1110)
 assign mask_rf_addrp0[4:0] = 5'b1_1111 << ({1'b0,v_lmul[1:0]} + vec_autogen.nrwop + (vrgatherei16op & (v_vsew[1:0]==2'b00)));
 assign mask_rf_addrp1[4:0] = 5'b1_1111 << ({1'b0,v_lmul[1:0] & ~{2{vec_autogen.vmvgrp | vec_ldst_idx_vld}}} + {2'd0,vec_autogen.nrwop} + {2'd0,vec_autogen.wdeop & vec_autogen.src1hw} + (instrn_id[17:15] & {3{vec_autogen.vmvgrp}}));   
 assign mask_rf_addrp2[4:0] = 5'b1_1111 << ((v_lmul[1:0] + vec_autogen.wdeop) & ~{2{vec_ldst_vld}});
-   
+
 assign vec_vs1_hazard_stall =  valid_vec_instrn & (lq_hit_cnt_vex_p0 > '0) & ~id_replay; 
 assign vec_vs2_hazard_stall =  valid_vec_instrn & (lq_hit_cnt_vex_p1 > '0) & ((vec_autogen_replay.addrp1_incr[0] & vec_ldst_idx_vld) | ~id_replay); 
 assign vec_vs3_hazard_stall =  valid_vec_instrn & (lq_hit_cnt_vex_p2 > '0) & ((vec_autogen_replay.addrp2_incr[0] & vec_ldst_vld)     | ~id_replay); 
 assign vec_rs1_hazard_stall =  valid_vec_instrn & (lq_hit_cnt_vex_r0 > '0); 
 assign vec_fs1_hazard_stall =  valid_vec_instrn & (lq_hit_cnt_vex_f0 > '0); 
 assign vec_mask_hazard_stall  = valid_vec_instrn & (lq_hit_cnt_vex_mask > '0) & ~id_replay;
-
+   
 wire rs1_hazard_stall = vec_vs1_hazard_stall  | vec_rs1_hazard_stall | vec_fs1_hazard_stall;
 wire rs2_hazard_stall = vec_vs2_hazard_stall;
 wire rs3_hazard_stall = vec_vs3_hazard_stall;
@@ -966,9 +967,15 @@ assign raw_hazard_stall_vex = vec_vs1_hazard_stall  | vec_rs1_hazard_stall | vec
                               vec_vs2_hazard_stall  |
                               vec_vs3_hazard_stall  |
                               vec_mask_hazard_stall;
-assign raw_hazard_stall     = (valid_vec_instrn && !vec_ldst_vld && !vsetOp_to_ex) ? raw_hazard_stall_vex : raw_hazard_stall_fwd;
+   
+assign matrix_vs1_hazard_stall =  matrix_vrf_read & (lq_hit_cnt_vex_p0 > '0) & ~id_replay; 
+assign matrix_vs2_hazard_stall =  matrix_vrf_read & (lq_hit_cnt_vex_p1 > '0) & ~id_replay; 
+assign raw_hazard_stall_matrix = matrix_vs1_hazard_stall |
+                                 matrix_vs2_hazard_stall;
+assign raw_hazard_stall     = (valid_vec_instrn && !vec_ldst_vld && !vsetOp_to_ex)  ? raw_hazard_stall_vex 
+                              (matrix_vrf_read && !vec_ldst_vld && !vsetOp_to_ex)   ? raw_hazard_stall_matrix 
+                                                                                    : raw_hazard_stall_fwd;
 
-  
 // Drive out new inst dispatch -- This should also track the number of inst retired
 wire id_ex_instdisp = id_rts & ~raw_hazard_stall & ~id_replay;
 tt_pipe_stage #(.WIDTH(1)) I_instdisp ( i_clk, i_reset_n, 1'b1, id_ex_instdisp, o_id_ex_instdisp);

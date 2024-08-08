@@ -606,14 +606,14 @@ module tt_vpu_ovi #(parameter VLEN = 256)
                        : id_vec_autogen.rf_rd_p2_is_rs2 ? id_vec_autogen.rf_addrp1
                                                         : id_vec_autogen.rf_addrp2;
 
-  assign mvex_lq_vld_3c = matrix_lq_vld | vex_mem_lqvld_3c;
-  assign mvex_lq_data_3c = vex_mem_lqvld_3c ? vex_mem_lqdata_3c
+  assign mvex_lq_vld_2c = matrix_lq_vld | vex_mem_lqvld_2c;
+  assign mvex_lq_data_2c = vex_mem_lqvld_2c ? vex_mem_lqdata_2c
                           : matrix_lq_vld ? matrix_lq_data 
                           : 'x;
-  assign mvex_lq_id_3c = vex_mem_lqvld_3c ? vex_mem_lqid_3c
+  assign mvex_lq_id_2c = vex_mem_lqvld_2c ? vex_mem_lqid_2c
                           : matrix_lq_vld ? matrix_lq_id 
                           : 'x;
-  assign mvex_lq_exc_3c = vex_mem_lqvld_3c ? vex_mem_lqexc_3c
+  assign mvex_lq_exc_2c = vex_mem_lqvld_2c ? vex_mem_lqexc_2c
                           : matrix_lq_vld ? matrix_lq_exc 
                           : 'x;
 
@@ -774,16 +774,16 @@ tt_lq #(.LQ_DEPTH(LQ_DEPTH),
    .i_vex_mem_lqexc_1c(vex_mem_lqexc_1c),
    .i_vex_mem_lqid_1c(vex_mem_lqid_1c),
 
-   .i_vex_mem_lqvld_2c(vex_mem_lqvld_2c),
-   .i_vex_mem_lqdata_2c(vex_mem_lqdata_2c),
-   .i_vex_mem_lqexc_2c(vex_mem_lqexc_2c),
-   .i_vex_mem_lqid_2c(vex_mem_lqid_2c),
+  /// vec : matrix read 
+   .i_vex_mem_lqvld_2c(mvex_lq_vld_2c),
+   .i_vex_mem_lqdata_2c(mvex_lq_data_2c),
+   .i_vex_mem_lqexc_2c(mvex_lq_exc_2c),
+   .i_vex_mem_lqid_2c(mvex_lq_id_2c),
 
-    //mem_lqdata_3c = vec : matrix
-   .i_vex_mem_lqvld_3c(mvex_lq_vld_3c),
-   .i_vex_mem_lqdata_3c(mvex_lq_data_3c),
-   .i_vex_mem_lqexc_3c(mvex_lq_exc_3c),
-   .i_vex_mem_lqid_3c(mvex_lq_id_3c),
+   .i_vex_mem_lqvld_3c(vex_mem_lqvld_3c),
+   .i_vex_mem_lqdata_3c(vex_mem_lqdata_3c),
+   .i_vex_mem_lqexc_3c(vex_mem_lqexc_3c),
+   .i_vex_mem_lqid_3c(vex_mem_lqid_3c),
 
    // Load return data
    .i_data_vld_0(drain_load_buffer),
