@@ -95,9 +95,12 @@ module tt_id #(parameter LQ_DEPTH=tt_briscv_pkg::LQ_DEPTH, LQ_DEPTH_LOG2=3, EXP_
    output logic [4:0] o_id_sb_id
 );
 
+wire v_ext;
+wire matrix_to_vec_mv;
+wire matrix_ext;
+
 wire i_ext, m_ext, a_ext, b_ext;
 wire f_ext;
-wire v_ext;
 wire illegal_op;
 wire [4:0] EncType;
 wire id_rts;
@@ -536,7 +539,8 @@ assign is_fp_instrn = f_ext;
 assign valid_fp_instrn = id_rts & is_fp_instrn;
 
 //VEC Instructions
-assign is_vec_instrn = v_ext | matrix_ext;
+assign is_vec_instrn = v_ext;
+assign is_matrix_instrn = matrix_ext;
 assign valid_vec_instrn = id_rts & is_vec_instrn;
 assign o_id_vex_rts    = (!raw_hazard_stall_vex) & id_rts & v_ext & ~vec_ldst_vld & ~vsetOp_to_ex;
 
@@ -562,8 +566,10 @@ assign m_ext = (EncType[4:0] == `BRISCV_INSTR_TYPE_RM);	// 01000
 assign a_ext = (EncType[4:0] == `BRISCV_INSTR_TYPE_A);	// 01001
 assign b_ext = (EncType[4:1] == 4'b0101);		// 01010 - 01011
 assign f_ext = (EncType[4:2] == 3'b011);		// 01100 - 01111
-assign v_ext = (EncType[4] == 1'b1) & ~(&EncType[3:0]);	// 10000 - 11110
-assign matrix_ext = (opcode == 'hB0);
+
+assign matrix_ext = (opcode == `MATRIX_OPC);
+assign matrix_to_vec_mv = (opcode == `MATRIX_OPC) & (funct3 == `MATRIX_FUNC_MV_M_V);
+assign v_ext = matrix_to_vec_mv &(EncType[4] == 1'b1) & ~(&EncType[3:0]);	// 10000 - 11110
 
 // Int
 autogen_EncType autogen_EncType ( opcode, funct3, funct7, mop, EncType[4:0]);
@@ -914,6 +920,7 @@ logic vec_vs3_hazard_stall, vec_vs2_hazard_stall, vec_vs1_hazard_stall,vec_mask_
 logic vec_rs1_hazard_stall;   
 logic vec_fs1_hazard_stall;   
 
+//miles TODO: follow these signals
 always_comb begin 
    for(int x=0;x<LQ_DEPTH;++x) begin
       lq_hit_entry_vex_p0[x]   = (INCL_VEC == 1) & ((mask_rf_addrp0 & o_vec_autogen.rf_addrp0) == (i_lq_broadside_info[x].rf_wraddr & mask_rf_addrp0)) & i_lq_broadside_valid[x] &  i_lq_broadside_info[x].vrf_wr_flag   & o_vec_autogen.rf_rden0 & !(o_vec_autogen.sel_scalar || o_vec_autogen.fp_sel_scalar); 

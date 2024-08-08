@@ -53,9 +53,9 @@ module tt_matrix_unit #(parameter
     wire [2:0] funct3 = inst[14:12];
     // wire       vm     = inst[25]; // Only needed for V-Ext
     
-    wire ab_valid = (opcode==OPC_MATRIX) & (funct3==FUNC_OPACC);
-    wire ci_valid = (opcode==OPC_MATRIX) & (funct3==FUNC_CIN);
-    wire co_valid = (opcode==OPC_MATRIX) & (funct3==FUNC_COUT);
+    wire ab_valid = (opcode==`MATRIX_OPC) & (funct3==`MATRIX_FUNC_OPACC);
+    wire ci_valid = (opcode==`MATRIX_OPC) & (funct3==`MATRIX_FUNC_MV_V_M);
+    wire co_valid = (opcode==`MATRIX_OPC) & (funct3==`MATRIX_FUNC_MV_M_V);
     
     assign o_vrf_rdaddr_0a = {a_addr, b_addr, c_addr};
 
